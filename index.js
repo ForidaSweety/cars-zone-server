@@ -1,21 +1,22 @@
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
-require('dotenv').config()
+
 const app = express();
 const port = process.env.PORT || 5005;
 
 
 // middleware
 //app.use(cors());
-const corsOptions ={
-    origin:'*', 
-    credentials:true,
-    optionSuccessStatus:200,
- }
- 
- app.use(cors(corsOptions))
+const corsOptions = {
+    origin: '*',
+    credentials: true,
+    optionSuccessStatus: 200,
+}
+
+app.use(cors(corsOptions))
 app.use(express.json());
 
 
@@ -33,7 +34,7 @@ const client = new MongoClient(uri, {
 async function run() {
     try {
         // Connect the client to the server	(optional starting in v4.7)
-        //await client.connect();
+        await client.connect();
 
         const allCarsCollection = client.db('carsZone').collection('carsInfo');
         const carsCollection = client.db('carsZone').collection('cars');
@@ -48,9 +49,18 @@ async function run() {
 
         ///get all the carsinfo
         app.get('/carsinfo', async (req, res) => {
-            const cursor = allCarsCollection.find();
+            const query = {}
+            const cursor = allCarsCollection.find(query);
             const result = await cursor.toArray();
             res.send(result);
+        })
+        // data update in database
+        app.get('/carsinfo/:id', async (req, res) => {
+            const id = req.params;
+            const query = { _id: new ObjectId(id) };
+            const result = await allCarsCollection.findOne(query);
+            res.send(result);
+
         })
 
         // ///sorting sorting
@@ -78,7 +88,8 @@ async function run() {
 
         //get cars
         app.get('/cars', async (req, res) => {
-            const cursor = carsCollection.find();
+            const query = {};
+            const cursor = carsCollection.find(query);
             const result = await cursor.toArray();
             res.send(result);
         })
@@ -157,23 +168,41 @@ async function run() {
             res.send(result);
         })
 
+        //update
+        app.put('/carsinfo/:id', async (req, res) => {
+            const id = req.params.id;
+            const filter = { _id: new ObjectId(id) };
+            const options = { upsert: true };
+            const updateToys = req.body;
 
-// search toys
-app.get("/toysearch/:text", async (req, res) => {
-    const text = req.params.text;
-    const result = await allCarsCollection.find({
-        $or: [
-          { name: { $regex: text, $options: "i" } },
-          { saller: { $regex: text, $options: "i" } },
-        ],
-      })
-      .toArray();
-    res.send(result);
-  });
+            const toys = {
+                $set: {
+                    price: updateToys.price,
+                    quantity: updateToys.quantity,
+                    description: updateToys.description
+                },
+            };
+            const result = await allCarsCollection.updateOne(filter, toys, options);
+            res.send(result);
+        })
+
+
+        // search toys
+        app.get("/toysearch/:text", async (req, res) => {
+            const text = req.params.text;
+            const result = await allCarsCollection.find({
+                $or: [
+                    { name: { $regex: text, $options: "i" } },
+                    { saller: { $regex: text, $options: "i" } },
+                ],
+            })
+                .toArray();
+            res.send(result);
+        });
 
 
         // Send a ping to confirm a successful connection
-        await client.db("admin").command({ ping: 1 });
+        //await client.db("admin").command({ ping: 1 });
         console.log("Pinged your deployment. You successfully connected to MongoDB!");
     } finally {
         // Ensures that the client will close when you finish/error
