@@ -34,7 +34,7 @@ const client = new MongoClient(uri, {
 async function run() {
     try {
         // Connect the client to the server	(optional starting in v4.7)
-        await client.connect();
+       // await client.connect();
 
         const allCarsCollection = client.db('carsZone').collection('carsInfo');
         const carsCollection = client.db('carsZone').collection('cars');
@@ -212,7 +212,7 @@ async function run() {
 run().catch(console.dir);
 
 app.get('/', (req, res) => {
-    res.send('server is running...')
+    res.send('cars server is running...')
 })
 
 app.listen(port, () => {
